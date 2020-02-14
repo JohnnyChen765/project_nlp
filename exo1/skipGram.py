@@ -215,9 +215,14 @@ if __name__ == "__main__":
 
         test_sample()
 
-        sentences = text2sentences(opts.text)
+        text_path = (
+            opts.text
+            or "data/data/training-monolingual.tokenized.shuffled/news.en-00001-of-00100"
+        )
+
+        sentences = text2sentences(text_path)
         sg = SkipGram(sentences)
-        sg.train(...)
+        sg.train()
         sg.save(opts.model)
 
     else:
