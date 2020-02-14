@@ -200,6 +200,8 @@ def test_sample():
 
 if __name__ == "__main__":
 
+    test_sample()
+
     parser = argparse.ArgumentParser()
     parser.add_argument("--text", help="path containing training data", required=True)
     parser.add_argument(
@@ -212,8 +214,6 @@ if __name__ == "__main__":
     opts = parser.parse_args()
 
     if not opts.test:
-
-        test_sample()
 
         text_path = (
             opts.text
