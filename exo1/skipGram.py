@@ -4,9 +4,12 @@ import pandas as pd
 
 # useful stuff
 import numpy as np
+
 from scipy.special import expit
 from sklearn.preprocessing import normalize
 
+# our imports
+import json
 
 __authors__ = ["Johnny Chen", "Guillaume Biagi"]
 __emails__ = []
@@ -25,6 +28,65 @@ def loadPairs(path):
     data = pd.read_csv(path, delimiter="\t")
     pairs = zip(data["word1"], data["word2"], data["similarity"])
     return pairs
+
+
+# w will be the vector of the center word
+# wc will be the vector of the context word
+# z will be the vector of the negative word
+
+
+def update_words(w, wc, array_zj, lr=0.1):
+    uc = np.dot(w, wc)
+    array_nj = [np.dot(w, z) for z in array_zj]
+
+    array_grad_loss_nj = expit(array_nj)  # scalar
+    grad_loss_uc = -expit((-1) * uc)  # scalar
+    array_grad_loss_zj = np.array(
+        [grad_nj * w for grad_nj in array_grad_loss_nj]
+    )  # array of vectors
+    grad_loss_wc = grad_loss_uc * w  # vector
+    grad_loss_w = grad_loss_uc * wc + sum(
+        [array_grad_loss_nj[j] * array_zj[j, :] for j in range(len(array_zj))]
+    )  # vector
+
+    w = w - lr * grad_loss_w
+    wc = wc - lr * grad_loss_wc
+    array_zj = array_zj - lr * array_grad_loss_zj
+
+    return (w, wc, array_zj)
+
+
+def test_update_words():
+    lr = 0.1
+    w = np.array([1, 0, 0, 0])
+    wc = np.array([1, 1, 0, 0])
+    zj = np.array([0, 1, 1, 0])
+    array_z = np.array([zj])
+
+    uc = np.dot(w, wc)
+    nj = np.dot(w, zj)
+
+    wc_expected = wc - (lr * (-expit((-1) * uc)) * w)
+    array_z_expected = np.array([zj - lr * expit(nj) * w])
+    w_expected = w - lr * (-expit((-1) * uc) * wc + expit(nj) * zj)
+
+    w1, wc, array_z = update_words(w, wc, array_z)
+
+    assert np.array_equal(wc_expected, wc)
+    assert np.array_equal(array_z_expected, array_z)
+    assert np.array_equal(w_expected, w1)
+
+
+def loss(w, wc, array_zj):
+    uc = np.dot(w, wc)
+    array_nj = [np.dot(w, z) for z in array_zj]
+
+    p1 = expit(uc)
+    p2 = np.product(-expit(array_nj))
+
+    loss = -np.log(p1 * p2)
+
+    return loss
 
 
 class SkipGram:
@@ -55,6 +117,8 @@ class SkipGram:
                 else:
                     self.word2occurences[word] += 1
 
+        self.vocab = list(self.word2id.keys())
+
         negative_sample_proba = self.create_negative_sample_probabilities(
             list(self.word2occurences.values())
         )
@@ -64,7 +128,12 @@ class SkipGram:
 
         train_ratio = 0.8
         self.trainset = sentences[0 : int(train_ratio * len(sentences))]
-        self.vocab = list(self.word2id.keys())
+
+        # center_matrix will be the matrix containing the embeddings of the center words.
+        self.center_matrix = np.zeros((self.total_number_of_words, nEmbed))
+
+        # context_matrix will be the matrix containing the embeddings of the context words.
+        self.context_matrix = np.zeros((self.total_number_of_words, nEmbed))
 
     def create_negative_sample_probabilities(self, occurences):
         occurences_with_power = np.power(occurences, 3 / 4)
@@ -116,6 +185,7 @@ class SkipGram:
                     if ctxtId == word_id:
                         continue
                     negativeIds = self.sample({word_id, ctxtId})
+
                     self.trainWord(word_id, ctxtId, negativeIds)
                     self.trainWords += 1
 
@@ -126,53 +196,45 @@ class SkipGram:
                 self.accLoss = 0.0
 
     def trainWord(self, wordId, contextId, negativeIds):
-        raise NotImplementedError("here is all the fun!")
+        w = self.center_matrix[wordId, :]
+        wc = self.context_matrix[contextId, :]
+        array_zj = self.context_matrix[negativeIds, :]
+
+        # we do not need to update other context words, as the gradient_loss_other_context_word = 0
+        w, wc, array_zj = update_words(w, wc, array_zj, lr=0.1)
+
+        self.center_matrix[wordId, :] = w
+        self.context_matrix[contextId, :] = wc
+        self.context_matrix[negativeIds, :] = array_zj
+
+        # raise NotImplementedError("here is all the fun!")
 
     def save(self, path):
         # Pas utile de tout sauvegarder (on peut retrouver total_number_of_words ou sampling probabilities sans les sauvegarder).
         # A ameliorer plus tard si besoin.
-        # Saving ids
-        file_id = open(path + "ids.txt", "w")
-        for w in self.word2id:
-            file_id.write(w + "," + str(self.word2id[w]) + "\n")
 
-        # Saving occurences
-        file_oc = open(path + "ocs.txt", "w")
-        for w in self.word2occurences:
-            file_oc.write(w + "," + str(self.word2occurences[w]) + "\n")
-
-        # Saving sampling probabilities
-        file_sp = open(path + "sps.txt", "w")
-        for w in self.word2negative_sampling_probabilities:
-            file_sp.write(
-                w + "," + str(self.word2negative_sampling_probabilities[w]) + "\n"
+        # Saving parameters. For now just putting everything in one file. Maybe discuss later if we separate
+        with open(path + "params.json", "w") as json_file:
+            json.dump(
+                {
+                    "word2id": self.word2id,
+                    "word2occurences": self.word2occurences,
+                    "word2negative_sampling_probabilities": self.word2negative_sampling_probabilities,
+                    "vocab": self.vocab,
+                    "trainset": self.trainset,
+                    "total_number_of_words": self.total_number_of_words,
+                    "negative_rate": self.negative_rate,
+                    "window_size": self.window_size,
+                },
+                json_file,
             )
 
-        # Saving trainset
-        file_ts = open(path + "ts.txt", "w")
-        for sentence in self.trainset:
-            for word in sentence:
-                file_ts.write(word + " ")
-            file_ts.write("\n")
-
-        # Saving vocabulary
-        file_voc = open(path + "voc.txt", "w")
-        for w in self.vocab:
-            file_voc.write(w + ",")
-
-        # Saving other parameters
-        file_param = open(path + "param.txt", "w")
-        file_param.write(
-            str(self.total_number_of_words)
-            + "\n"
-            + str(self.negative_rate)
-            + "\n"
-            + str(self.window_size)
-        )
+        np.save(path + "center_matrix.npy", self.center_matrix)
+        np.save(path + "context_matrix.npy", self.context_matrix)
 
     def similarity(self, word1, word2):
         """
-			computes similiarity between the two words. unknown words are mapped to one common vector
+        computes similiarity between the two words. unknown words are mapped to one common vector
 		:param word1:
 		:param word2:
 		:return: a float \in [0,1] indicating the similarity (the higher the more similar)
@@ -181,7 +243,17 @@ class SkipGram:
 
     @staticmethod
     def load(path):
-        raise NotImplementedError("implement it!")
+        sg = SkipGram(sentences=[])
+
+        with open(path + "params.json", "r") as json_file:
+            params = json.load(json_file)
+            for key in params:
+                setattr(sg, key, params.get(key))
+
+        setattr(sg, "center_matrix", np.load(path + "center_matrix.npy"))
+        setattr(sg, "context_matrix", np.load(path + "context_matrix.npy"))
+
+        return sg
 
 
 def test_sample():
@@ -201,6 +273,7 @@ def test_sample():
 if __name__ == "__main__":
 
     test_sample()
+    test_update_words()
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--text", help="path containing training data", required=True)
@@ -223,12 +296,11 @@ if __name__ == "__main__":
         sentences = text2sentences(text_path)
         sg = SkipGram(sentences)
         sg.train()
-        sg.save(opts.model)
+        sg.save(opts.model or "params/")
 
     else:
         pairs = loadPairs(opts.text)
-
-        sg = SkipGram.load(opts.model)
+        sg = SkipGram.load(opts.model or "params/")
         for a, b, _ in pairs:
             # make sure this does not raise any exception, even if a or b are not in sg.vocab
             print(sg.similarity(a, b))
