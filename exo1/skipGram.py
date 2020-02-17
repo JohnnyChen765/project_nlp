@@ -94,6 +94,8 @@ class SkipGram:
     def __init__(
         self, sentences, nEmbed=100, negativeRate=5, window_size=5, minCount=5
     ):
+        start = time.time()
+
         # sentences is an array of arrays of words
         self.word2id = {}  # word to ID mapping
         self.id2word = {}
@@ -137,6 +139,11 @@ class SkipGram:
 
         # context_matrix will be the matrix containing the embeddings of the context words.
         self.context_matrix = np.random.random((self.total_number_of_words, nEmbed))
+
+        end = time.time()
+        print(
+            f"init skipGram took {round(end - start, 2)} s | {round((end - start) * 1000, 2)} ms "
+        )
 
     def create_negative_sample_probabilities(self, occurences):
         occurences_with_power = np.power(occurences, 3 / 4)
@@ -254,6 +261,8 @@ class SkipGram:
 
     @staticmethod
     def load(path):
+        start = time.time()
+
         sg = SkipGram(sentences=[])
 
         params = [
@@ -280,7 +289,10 @@ class SkipGram:
             sg.id2word[ids] = word
 
         sg.proba_density = list(sg.word2negative_sampling_probabilities.values())
-
+        end = time.time()
+        print(
+            f"Loading SkipGram took {round(end - start, 2)} s | {round((end - start) * 1000, 2)} ms"
+        )
         return sg
 
 
