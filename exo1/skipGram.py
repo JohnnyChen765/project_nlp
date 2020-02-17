@@ -98,7 +98,7 @@ class SkipGram:
         self.id2word = {}
         self.word2occurences = {}
         self.word2negative_sampling_probabilities = {}
-        self.proba_density = [0]
+        self.proba_density = []
         self.trainset = []  # set of sentences
         self.trainWords = 0
         self.accLoss = 0
@@ -121,17 +121,12 @@ class SkipGram:
 
         self.vocab = list(self.word2id.keys())
 
-        negative_sample_proba = self.create_negative_sample_probabilities(
+        self.proba_density = self.create_negative_sample_probabilities(
             list(self.word2occurences.values())
         )
         self.word2negative_sampling_probabilities = dict(
-            zip(self.word2occurences.keys(), negative_sample_proba)
+            zip(self.word2occurences.keys(), self.proba_density)
         )
-        for i in range(len(self.vocab)):
-            self.proba_density.append(
-                self.proba_density[-1]
-                + self.word2negative_sampling_probabilities[self.id2word[i]]
-            )
 
         train_ratio = 0.8
         self.trainset = sentences[0 : int(train_ratio * len(sentences))]
@@ -146,13 +141,14 @@ class SkipGram:
         occurences_with_power = np.power(occurences, 3 / 4)
         s = np.sum(occurences_with_power)
         probabilities = occurences_with_power / s
+        probabilities = np.cumsum(probabilities)
         return probabilities
 
-    def sample(self, omit_ids, n_samplings=5):
+    def sample(self, omit_ids, n_sampling=5):
         random_value = np.random.rand()
         negative_ids = []
 
-        while len(negative_ids) < n_samplings:
+        while len(negative_ids) < n_sampling:
             negative_id = np.searchsorted(self.proba_density, random_value)
 
             if negative_id not in omit_ids:
@@ -269,6 +265,8 @@ class SkipGram:
         setattr(sg, "context_matrix", np.load(path + "context_matrix.npy"))
         for (word, ids) in sg.word2id.items():
             sg.id2word[ids] = word
+
+        sg.proba_density = list(sg.word2negative_sampling_probabilities.values())
 
         return sg
 
