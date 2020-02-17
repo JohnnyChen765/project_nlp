@@ -128,8 +128,10 @@ class SkipGram:
             zip(self.word2occurences.keys(), negative_sample_proba)
         )
         for i in range(len(self.vocab)):
-            self.proba_density.append(self.proba_density[-1]
-                                      +self.word2negative_sampling_probabilities[self.id2word[i]])
+            self.proba_density.append(
+                self.proba_density[-1]
+                + self.word2negative_sampling_probabilities[self.id2word[i]]
+            )
 
         train_ratio = 0.8
         self.trainset = sentences[0 : int(train_ratio * len(sentences))]
@@ -146,56 +148,18 @@ class SkipGram:
         probabilities = occurences_with_power / s
         return probabilities
 
-    def sample(self, omit_ids, n_sampling=5):
-        random_values = np.random.rand(n_sampling)
-        random_values.sort()
-
-        negative_ids = []
-
-        words_not_omitted = self.word2occurences.copy()
-        for omit_id in omit_ids:
-            omit_word = self.id2word[omit_id]
-            del words_not_omitted[omit_word]
-        id_not_omitted = [self.word2id[word] for word in words_not_omitted]
-
-        probabilities = self.create_negative_sample_probabilities(
-            list(words_not_omitted.values())
-        )
-
-        cursor_proba = 0
-        upper_bound = probabilities[0]
-        # for word, probability in self.word2negative_sampling_probabilities:
-        while len(random_values) != 0:
-            while random_values[0] > upper_bound:
-                cursor_proba += 1
-                upper_bound += probabilities[cursor_proba]
-
-            random_values = random_values[1:]
-            negative_ids.append(id_not_omitted[cursor_proba])
-
-        return negative_ids
-
-    def sample2(self,omit_ids,n_samplings=5):
+    def sample(self, omit_ids, n_samplings=5):
         random_value = np.random.rand()
         negative_ids = []
-        
-        n_tot = len(self.vocab)
-        n = n_tot//2
-        n_min=0
-        n_max = n_tot
-        
-        while len(negative_ids)<n_samplings:
-            if self.proba_density[n]<random_value and self.proba_density[n+1]>random_value:
-                if not n in omit_ids:
-                    negative_ids.append(n)
-                random_value = np.random.rand()
-                n_min = 0
-                n_max = n_tot
-            elif self.proba_density[n]<random_value:
-                n_min = n
-            else:
-                n_max = n
-            n = (n_min+n_max)//2
+
+        while len(negative_ids) < n_samplings:
+            negative_id = np.searchsorted(self.proba_density, random_value)
+
+            if negative_id not in omit_ids:
+                negative_ids.append(negative_id)
+
+            random_value = np.random.rand()
+
         return negative_ids
 
     def train(self):
@@ -303,7 +267,6 @@ class SkipGram:
 
         setattr(sg, "center_matrix", np.load(path + "center_matrix.npy"))
         setattr(sg, "context_matrix", np.load(path + "context_matrix.npy"))
-
         for (word, ids) in sg.word2id.items():
             sg.id2word[ids] = word
 
