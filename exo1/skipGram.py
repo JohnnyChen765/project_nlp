@@ -133,10 +133,10 @@ class SkipGram:
         self.trainset = sentences[0 : int(train_ratio * len(sentences))]
 
         # center_matrix will be the matrix containing the embeddings of the center words.
-        self.center_matrix = np.zeros((self.total_number_of_words, nEmbed))
+        self.center_matrix = np.random.random((self.total_number_of_words, nEmbed))
 
         # context_matrix will be the matrix containing the embeddings of the context words.
-        self.context_matrix = np.zeros((self.total_number_of_words, nEmbed))
+        self.context_matrix = np.random.random((self.total_number_of_words, nEmbed))
 
     def create_negative_sample_probabilities(self, occurences):
         occurences_with_power = np.power(occurences, 3 / 4)
