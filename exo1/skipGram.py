@@ -145,11 +145,15 @@ class SkipGram:
         probabilities = np.cumsum(probabilities)
         return probabilities
 
-    def sample(self, omit_ids, n_sampling=5):
+    def sample(
+        self, omit_ids, n_sampling=5
+    ):  # from our latest test: 0.02ms, as as dichotomy
         random_value = np.random.rand()
         negative_ids = []
 
         while len(negative_ids) < n_sampling:
+            # use proba_density rather than word2negative_sampling_probabilities, because
+            # we won't have to recopy the values of the dict in a list to use them
             negative_id = np.searchsorted(self.proba_density, random_value)
 
             if negative_id not in omit_ids:
@@ -174,12 +178,14 @@ class SkipGram:
                     if ctxtId == word_id:
                         continue
 
-                    start = time.time()
+                    # start = time.time()
+                    # negativeIds = self.sample({word_id, ctxtId})
+                    # end = time.time()
+                    # print(
+                    #     f"sampling took {round(end - start, 2)} s | {round((end - start) * 1000, 2)} ms"
+                    # )
+
                     negativeIds = self.sample({word_id, ctxtId})
-                    end = time.time()
-                    print(
-                        f"sampling took {round(end - start, 2)} s | {round((end - start) * 1000, 2)} ms"
-                    )
 
                     self.trainWord(word_id, ctxtId, negativeIds)
                     self.trainWords += 1
