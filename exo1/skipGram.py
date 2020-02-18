@@ -253,12 +253,11 @@ class SkipGram:
         w_id = self.word2id.get(word1)
         wc_id = self.word2id.get(word2)
 
-        w = self.center_matrix[w_id, :] if w_id is not None else np.zeros(self.nEmbed)
-        wc = (
-            self.context_matrix[wc_id, :]
-            if wc_id is not None
-            else np.zeros(self.nEmbed)
-        )
+        if w_id is None or wc_id is None:
+            return 0
+
+        w = self.center_matrix[w_id, :]
+        wc = self.context_matrix[wc_id, :]
 
         uc = np.dot(w, wc)
         p1 = expit(uc)
