@@ -215,14 +215,23 @@ class SkipGram:
         # A ameliorer plus tard si besoin.
 
         # Saving parameters. For now just putting everything in one file. Maybe discuss later if we separate
-        with open(path + "params.json", "w") as json_file:
+        params = [
+            "word2id",
+            "word2occurences",
+            "word2negative_sampling_probabilities",
+            "vocab",
+            "trainset",
+        ]
+
+        for param in params:
+            with open(path + param + ".json", "w") as json_file:
+                json.dump(
+                    getattr(self, param), json_file,
+                )
+
+        with open(path + "other_params.json", "w") as json_file:
             json.dump(
                 {
-                    "word2id": self.word2id,
-                    "word2occurences": self.word2occurences,
-                    "word2negative_sampling_probabilities": self.word2negative_sampling_probabilities,
-                    "vocab": self.vocab,
-                    "trainset": self.trainset,
                     "total_number_of_words": self.total_number_of_words,
                     "negative_rate": self.negative_rate,
                     "window_size": self.window_size,
@@ -247,13 +256,27 @@ class SkipGram:
     def load(path):
         sg = SkipGram(sentences=[])
 
-        with open(path + "params.json", "r") as json_file:
+        params = [
+            "word2id",
+            "word2occurences",
+            "word2negative_sampling_probabilities",
+            "vocab",
+            "trainset",
+        ]
+
+        for param in params:
+            with open(path + param + ".json", "r") as json_file:
+                value = json.load(json_file)
+                setattr(sg, param, value)
+
+        with open(path + "other_params.json", "r") as json_file:
             params = json.load(json_file)
             for key in params:
                 setattr(sg, key, params.get(key))
 
         setattr(sg, "center_matrix", np.load(path + "center_matrix.npy"))
         setattr(sg, "context_matrix", np.load(path + "context_matrix.npy"))
+
         for (word, ids) in sg.word2id.items():
             sg.id2word[ids] = word
 
@@ -275,7 +298,6 @@ def test_sample():
 
 
 if __name__ == "__main__":
-
     test_sample()
     test_update_words()
 
