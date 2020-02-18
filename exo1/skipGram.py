@@ -10,6 +10,7 @@ from sklearn.preprocessing import normalize
 
 # our imports
 import json
+import time
 
 __authors__ = ["Johnny Chen", "Guillaume Biagi"]
 __emails__ = []
@@ -93,11 +94,14 @@ class SkipGram:
     def __init__(
         self, sentences, nEmbed=100, negativeRate=5, window_size=5, minCount=5
     ):
+        start = time.time()
+
         # sentences is an array of arrays of words
         self.word2id = {}  # word to ID mapping
         self.id2word = {}
         self.word2occurences = {}
         self.word2negative_sampling_probabilities = {}
+        self.proba_density = []
         self.trainset = []  # set of sentences
         self.trainWords = 0
         self.accLoss = 0
@@ -120,54 +124,49 @@ class SkipGram:
 
         self.vocab = list(self.word2id.keys())
 
-        negative_sample_proba = self.create_negative_sample_probabilities(
+        self.proba_density = self.create_negative_sample_probabilities(
             list(self.word2occurences.values())
         )
         self.word2negative_sampling_probabilities = dict(
-            zip(self.word2occurences.keys(), negative_sample_proba)
+            zip(self.word2occurences.keys(), self.proba_density)
         )
 
         train_ratio = 0.8
         self.trainset = sentences[0 : int(train_ratio * len(sentences))]
 
         # center_matrix will be the matrix containing the embeddings of the center words.
-        self.center_matrix = np.zeros((self.total_number_of_words, nEmbed))
+        self.center_matrix = np.random.random((self.total_number_of_words, nEmbed))
 
         # context_matrix will be the matrix containing the embeddings of the context words.
-        self.context_matrix = np.zeros((self.total_number_of_words, nEmbed))
+        self.context_matrix = np.random.random((self.total_number_of_words, nEmbed))
+
+        end = time.time()
+        print(
+            f"init skipGram took {round(end - start, 2)} s | {round((end - start) * 1000, 2)} ms "
+        )
 
     def create_negative_sample_probabilities(self, occurences):
         occurences_with_power = np.power(occurences, 3 / 4)
         s = np.sum(occurences_with_power)
         probabilities = occurences_with_power / s
+        probabilities = np.cumsum(probabilities)
         return probabilities
 
-    def sample(self, omit_ids, n_sampling=5):
-        random_values = np.random.rand(n_sampling)
-        random_values.sort()
-
+    def sample(
+        self, omit_ids, n_sampling=5
+    ):  # from our latest test: 0.02ms, as as dichotomy
+        random_value = np.random.rand()
         negative_ids = []
 
-        words_not_omitted = self.word2occurences.copy()
-        for omit_id in omit_ids:
-            omit_word = self.id2word[omit_id]
-            del words_not_omitted[omit_word]
-        id_not_omitted = [self.word2id[word] for word in words_not_omitted]
+        while len(negative_ids) < n_sampling:
+            # use proba_density rather than word2negative_sampling_probabilities, because
+            # we won't have to recopy the values of the dict in a list to use them
+            negative_id = np.searchsorted(self.proba_density, random_value)
 
-        probabilities = self.create_negative_sample_probabilities(
-            list(words_not_omitted.values())
-        )
+            if negative_id not in omit_ids:
+                negative_ids.append(negative_id)
 
-        cursor_proba = 0
-        upper_bound = probabilities[0]
-        # for word, probability in self.word2negative_sampling_probabilities:
-        while len(random_values) != 0:
-            while random_values[0] > upper_bound:
-                cursor_proba += 1
-                upper_bound += probabilities[cursor_proba]
-
-            random_values = random_values[1:]
-            negative_ids.append(id_not_omitted[cursor_proba])
+            random_value = np.random.rand()
 
         return negative_ids
 
@@ -185,6 +184,14 @@ class SkipGram:
                     ctxtId = self.word2id[context_word]
                     if ctxtId == word_id:
                         continue
+
+                    # start = time.time()
+                    # negativeIds = self.sample({word_id, ctxtId})
+                    # end = time.time()
+                    # print(
+                    #     f"sampling took {round(end - start, 2)} s | {round((end - start) * 1000, 2)} ms"
+                    # )
+
                     negativeIds = self.sample({word_id, ctxtId})
 
                     self.trainWord(word_id, ctxtId, negativeIds)
@@ -254,6 +261,8 @@ class SkipGram:
 
     @staticmethod
     def load(path):
+        start = time.time()
+
         sg = SkipGram(sentences=[])
 
         params = [
@@ -276,10 +285,14 @@ class SkipGram:
 
         setattr(sg, "center_matrix", np.load(path + "center_matrix.npy"))
         setattr(sg, "context_matrix", np.load(path + "context_matrix.npy"))
-
         for (word, ids) in sg.word2id.items():
             sg.id2word[ids] = word
 
+        sg.proba_density = list(sg.word2negative_sampling_probabilities.values())
+        end = time.time()
+        print(
+            f"Loading SkipGram took {round(end - start, 2)} s | {round((end - start) * 1000, 2)} ms"
+        )
         return sg
 
 
@@ -321,7 +334,12 @@ if __name__ == "__main__":
 
         sentences = text2sentences(text_path)
         sg = SkipGram(sentences)
+        start = time.time()
         sg.train()
+        end = time.time()
+        print(
+            f"The training took {round(end - start, 2)} s | {round((end - start) / 60)} min"
+        )
         sg.save(opts.model or "params/")
 
     else:
