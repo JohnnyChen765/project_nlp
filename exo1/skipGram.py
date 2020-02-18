@@ -106,6 +106,7 @@ class SkipGram:
         self.total_number_of_words = 0
         self.negative_rate = negativeRate
         self.window_size = window_size
+        self.nEmbed = nEmbed
 
         for array_of_words in sentences:
             for word in array_of_words:
@@ -142,21 +143,21 @@ class SkipGram:
         return probabilities
 
     def sample(self, omit_ids, n_sampling=5):
-       	random_values = np.random.rand(n_sampling)
+        random_values = np.random.rand(n_sampling)
         random_values.sort()
-	
+
         negative_ids = []
-	
+
         words_not_omitted = self.word2occurences.copy()
         for omit_id in omit_ids:
             omit_word = self.id2word[omit_id]
             del words_not_omitted[omit_word]
         id_not_omitted = [self.word2id[word] for word in words_not_omitted]
-        
+
         probabilities = self.create_negative_sample_probabilities(
             list(words_not_omitted.values())
         )
-	
+
         cursor_proba = 0
         upper_bound = probabilities[0]
         # for word, probability in self.word2negative_sampling_probabilities:
@@ -164,7 +165,7 @@ class SkipGram:
             while random_values[0] > upper_bound:
                 cursor_proba += 1
                 upper_bound += probabilities[cursor_proba]
-		
+
             random_values = random_values[1:]
             negative_ids.append(id_not_omitted[cursor_proba])
 
@@ -233,7 +234,14 @@ class SkipGram:
         np.save(path + "context_matrix.npy", self.context_matrix)
 
     def similarity(self, word1, word2):
-        raise NotImplementedError("Not implemented yet")
+        w = self.word2id.get(word1) or np.zeros((1, self.nEmbed))
+        wc = self.word2id.get(word2) or np.zeros((1, self.nEmbed))
+
+        uc = np.dot(w, wc)
+        p1 = expit(uc)
+
+        return p1
+        # raise NotImplementedError("Not implemented yet")
 
     @staticmethod
     def load(path):
@@ -246,7 +254,7 @@ class SkipGram:
 
         setattr(sg, "center_matrix", np.load(path + "center_matrix.npy"))
         setattr(sg, "context_matrix", np.load(path + "context_matrix.npy"))
-        for (word,ids) in sg.word2id.items():
+        for (word, ids) in sg.word2id.items():
             sg.id2word[ids] = word
 
         return sg
