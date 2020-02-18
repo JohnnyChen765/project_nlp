@@ -250,8 +250,15 @@ class SkipGram:
         np.save(path + "context_matrix.npy", self.context_matrix)
 
     def similarity(self, word1, word2):
-        w = self.word2id.get(word1) or np.zeros((1, self.nEmbed))
-        wc = self.word2id.get(word2) or np.zeros((1, self.nEmbed))
+        w_id = self.word2id.get(word1)
+        wc_id = self.word2id.get(word2)
+
+        w = self.center_matrix[w_id, :] if w_id is not None else np.zeros(self.nEmbed)
+        wc = (
+            self.context_matrix[wc_id, :]
+            if wc_id is not None
+            else np.zeros(self.nEmbed)
+        )
 
         uc = np.dot(w, wc)
         p1 = expit(uc)
@@ -340,11 +347,13 @@ if __name__ == "__main__":
         print(
             f"The training took {round(end - start, 2)} s | {round((end - start) / 60)} min"
         )
+
         sg.save(opts.model or "params/")
 
     else:
         pairs = loadPairs(opts.text)
         sg = SkipGram.load(opts.model or "params/")
+
         for a, b, _ in pairs:
             # make sure this does not raise any exception, even if a or b are not in sg.vocab
             print(sg.similarity(a, b))
