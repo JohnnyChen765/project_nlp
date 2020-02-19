@@ -22,6 +22,7 @@ def text2sentences(path):
     with open(path) as f:
         for l in f:
             sentences.append(l.lower().split())
+
     return sentences
 
 
@@ -80,19 +81,44 @@ def test_update_words():
 
 def loss(w, wc, array_zj):
     uc = np.dot(w, wc)
-    array_nj = [np.dot(w, z) for z in array_zj]
+    array_nj = np.array([np.dot(w, z) for z in array_zj])
+
+    assert (
+        len((-1) * array_nj) != 0
+    )  # we encountered a problem like this when arra_nj was not a np.array.
 
     p1 = expit(uc)
-    p2 = np.product(-expit(array_nj))
+    p2 = np.product(expit((-1) * array_nj))
 
     loss = -np.log(p1 * p2)
 
     return loss
 
 
+def test_loss():
+    sentences = [["sentence", "one"], ["sentence", "two"]]
+    sg = SkipGram(sentences)
+    # sg matrixes should be randomized with a uniform distribution on [0,1]
+    negativeIds = sg.sample([])
+
+    w = sg.center_matrix[0, :]
+    wc = sg.context_matrix[1, :]
+    array_zj = sg.context_matrix[negativeIds, :]
+
+    loss_value = loss(w, wc, array_zj)
+
+    assert loss_value > 5  # arbitrary value, loss should be big enough
+
+
 class SkipGram:
     def __init__(
-        self, sentences, nEmbed=100, negativeRate=5, window_size=5, minCount=5
+        self,
+        sentences,
+        nEmbed=100,
+        negativeRate=5,
+        window_size=5,
+        minCount=5,
+        verbose=False,
     ):
         start = time.time()
 
@@ -141,9 +167,11 @@ class SkipGram:
         self.context_matrix = np.random.random((self.total_number_of_words, nEmbed))
 
         end = time.time()
-        print(
-            f"init skipGram took {round(end - start, 2)} s | {round((end - start) * 1000, 2)} ms "
-        )
+
+        if verbose:
+            print(
+                f"init skipGram took {round(end - start, 2)} s | {round((end - start) * 1000, 2)} ms "
+            )
 
     def create_negative_sample_probabilities(self, occurences):
         occurences_with_power = np.power(occurences, 3 / 4)
@@ -197,19 +225,28 @@ class SkipGram:
                     self.trainWord(word_id, ctxtId, negativeIds)
                     self.trainWords += 1
 
+                    self.accLoss += loss(
+                        self.center_matrix[word_id, :],
+                        self.context_matrix[ctxtId, :],
+                        np.array(
+                            [self.context_matrix[neg_id, :] for neg_id in negativeIds]
+                        ),
+                    )
+
             if counter % 1000 == 0:
                 print(" > training %d of %d" % (counter, len(self.trainset)))
                 self.loss.append(self.accLoss / self.trainWords)
+                print(f" > loss: {self.loss[-1]}")
                 self.trainWords = 0
                 self.accLoss = 0.0
 
-    def trainWord(self, wordId, contextId, negativeIds):
+    def trainWord(self, wordId, contextId, negativeIds, lr=0.1):
         w = self.center_matrix[wordId, :]
         wc = self.context_matrix[contextId, :]
         array_zj = self.context_matrix[negativeIds, :]
 
         # we do not need to update other context words, as the gradient_loss_other_context_word = 0
-        w, wc, array_zj = update_words(w, wc, array_zj, lr=0.1)
+        w, wc, array_zj = update_words(w, wc, array_zj, lr=lr)
 
         self.center_matrix[wordId, :] = w
         self.context_matrix[contextId, :] = wc
@@ -242,6 +279,7 @@ class SkipGram:
                     "total_number_of_words": self.total_number_of_words,
                     "negative_rate": self.negative_rate,
                     "window_size": self.window_size,
+                    "loss": self.loss,
                 },
                 json_file,
             )
@@ -266,10 +304,10 @@ class SkipGram:
         # raise NotImplementedError("Not implemented yet")
 
     @staticmethod
-    def load(path):
+    def load(path, verbose=False):
         start = time.time()
 
-        sg = SkipGram(sentences=[])
+        sg = SkipGram(sentences=[], verbose=verbose)
 
         params = [
             "word2id",
@@ -296,9 +334,12 @@ class SkipGram:
 
         sg.proba_density = list(sg.word2negative_sampling_probabilities.values())
         end = time.time()
-        print(
-            f"Loading SkipGram took {round(end - start, 2)} s | {round((end - start) * 1000, 2)} ms"
-        )
+
+        if verbose:
+            print(
+                f"Loading SkipGram took {round(end - start, 2)} s | {round((end - start) * 1000, 2)} ms"
+            )
+
         return sg
 
 
@@ -317,8 +358,6 @@ def test_sample():
 
 
 if __name__ == "__main__":
-    test_sample()
-    test_update_words()
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--text", help="path containing training data", required=True)
@@ -328,10 +367,17 @@ if __name__ == "__main__":
         required=True,
     )
     parser.add_argument("--test", help="enters test mode", action="store_true")
+    parser.add_argument("--v", help="enters verbose mode", action="store_true")
 
     opts = parser.parse_args()
 
     if not opts.test:
+
+        print("TESTING")
+        test_sample()
+        test_update_words()
+        test_loss()
+        print("END OF TEST")
 
         text_path = (
             opts.text
@@ -339,7 +385,7 @@ if __name__ == "__main__":
         )
 
         sentences = text2sentences(text_path)
-        sg = SkipGram(sentences)
+        sg = SkipGram(sentences, verbose=opts.v)
         start = time.time()
         sg.train()
         end = time.time()
@@ -351,7 +397,7 @@ if __name__ == "__main__":
 
     else:
         pairs = loadPairs(opts.text)
-        sg = SkipGram.load(opts.model or "params/")
+        sg = SkipGram.load(opts.model or "params/", verbose=opts.v)
 
         for a, b, _ in pairs:
             # make sure this does not raise any exception, even if a or b are not in sg.vocab
