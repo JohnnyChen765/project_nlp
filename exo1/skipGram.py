@@ -11,6 +11,7 @@ from sklearn.preprocessing import normalize
 # our imports
 import json
 import time
+import os
 
 __authors__ = ["Johnny Chen", "Guillaume Biagi"]
 __emails__ = []
@@ -259,6 +260,10 @@ class SkipGram:
         # A ameliorer plus tard si besoin.
 
         # Saving parameters. For now just putting everything in one file. Maybe discuss later if we separate
+
+        if not os.path.exists(path):
+            os.makedirs(path)
+
         params = [
             "word2id",
             "word2occurences",
