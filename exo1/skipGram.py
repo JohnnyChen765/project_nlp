@@ -33,6 +33,46 @@ def loadPairs(path):
     return pairs
 
 
+def create_negative_table(word2proba):
+    proba_table = list(word2proba.values())
+
+    if len(proba_table) == 0:
+        return []
+
+    min_proba = min(
+        proba_table
+    )  # to ensure every one has at least 1 occurence, even if it means adding more words
+
+    n_tot = np.ceil(1 / min_proba)
+    negative_table = []
+
+    for word in word2proba:
+        n_appearance = int(round(word2proba.get(word) * n_tot))
+        for j in range(n_appearance):
+            negative_table.append(word)
+    return negative_table
+
+
+def test_negative_table():
+    word2proba = {
+        "toto": 0.8,
+        "tata": 0.156,
+        "titi": 0.044,
+    }
+
+    count = {"toto": 0, "tata": 0, "titi": 0}
+
+    table = create_negative_table(word2proba)
+
+    for x in table:
+        count[x] += 1
+
+    assert len(table) == 23
+    assert count["toto"] == 18
+    assert count["tata"] == 4
+    assert count["titi"] == 1
+
+
 # w will be the vector of the center word
 # wc will be the vector of the context word
 # z will be the vector of the negative word
@@ -157,6 +197,9 @@ class SkipGram:
         self.word2negative_sampling_probabilities = dict(
             zip(self.word2occurences.keys(), self.proba_density)
         )
+        self.negative_table = create_negative_table(
+            self.word2negative_sampling_probabilities
+        )
 
         train_ratio = 0.8
         self.trainset = sentences[0 : int(train_ratio * len(sentences))]
@@ -178,24 +221,30 @@ class SkipGram:
         occurences_with_power = np.power(occurences, 3 / 4)
         s = np.sum(occurences_with_power)
         probabilities = occurences_with_power / s
-        probabilities = np.cumsum(probabilities)
         return probabilities
 
     def sample(
         self, omit_ids, n_sampling=5
-    ):  # from our latest test: 0.02ms, as as dichotomy
-        random_value = np.random.rand()
+    ):  # from our latest test: 0.023ms, using np.searchsorted vs 0.008 ms negative table
+
+        n = len(self.negative_table)
+
+        random_value = int(
+            np.random.rand() * n
+        )  # 1 micros vs 10 micros with randint(n)
+
         negative_ids = []
 
         while len(negative_ids) < n_sampling:
             # use proba_density rather than word2negative_sampling_probabilities, because
             # we won't have to recopy the values of the dict in a list to use them
-            negative_id = np.searchsorted(self.proba_density, random_value)
+
+            negative_id = self.word2id[self.negative_table[random_value]]
 
             if negative_id not in omit_ids:
                 negative_ids.append(negative_id)
 
-            random_value = np.random.rand()
+            random_value = int(np.random.rand() * n)
 
         return negative_ids
 
@@ -219,7 +268,7 @@ class SkipGram:
                     # negativeIds = self.sample({word_id, ctxtId})
                     # end = time.time()
                     # print(
-                    #     f"sampling took {round(end - start, 2)} s | {round((end - start) * 1000, 2)} ms"
+                    #     f"sampling took {round(end - start, 2)} s | {round((end - start) * 1000, 3)} ms"
                     # )
 
                     negativeIds = self.sample({word_id, ctxtId})
@@ -272,6 +321,7 @@ class SkipGram:
             "word2id",
             "word2occurences",
             "word2negative_sampling_probabilities",
+            "negative_table",
             "vocab",
             "trainset",
         ]
@@ -321,6 +371,7 @@ class SkipGram:
             "word2id",
             "word2occurences",
             "word2negative_sampling_probabilities",
+            "negative_table",
             "vocab",
             "trainset",
         ]
@@ -385,6 +436,7 @@ if __name__ == "__main__":
         test_sample()
         test_update_words()
         test_loss()
+        test_negative_table()
         print("END OF TEST")
 
         text_path = (
