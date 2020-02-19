@@ -200,6 +200,7 @@ class SkipGram:
         return negative_ids
 
     def train(self):
+        start_1000 = time.time()
         for counter, sentence in enumerate(self.trainset):
             sentence = [w for w in filter(lambda word: word in self.vocab, sentence)]
 
@@ -235,9 +236,12 @@ class SkipGram:
                     )
 
             if counter % 1000 == 0:
+                end_1000 = time.time()
                 print(" > training %d of %d" % (counter, len(self.trainset)))
                 self.loss.append(self.accLoss / self.trainWords)
                 print(f" > loss: {self.loss[-1]}")
+                print(f" > took: {round(end_1000 - start_1000, 2)} s")
+                start_1000 = time.time()
                 self.trainWords = 0
                 self.accLoss = 0.0
 
