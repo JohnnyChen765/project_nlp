@@ -297,10 +297,9 @@ class SkipGram:
         w = self.center_matrix[w_id, :]
         wc = self.context_matrix[wc_id, :]
 
-        uc = np.dot(w, wc)
-        p1 = expit(uc)
+        cos = np.dot(w, wc) / (np.linalg.norm(w) * np.linalg.norm(wc))
 
-        return p1
+        return cos
         # raise NotImplementedError("Not implemented yet")
 
     @staticmethod
