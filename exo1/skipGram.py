@@ -295,7 +295,7 @@ class SkipGram:
                 self.trainWords = 0
                 self.accLoss = 0.0
 
-    def trainWord(self, wordId, contextId, negativeIds, lr=0.1):
+    def trainWord(self, wordId, contextId, negativeIds, lr=0.05):
         w = self.center_matrix[wordId, :]
         wc = self.context_matrix[contextId, :]
         array_zj = self.context_matrix[negativeIds, :]
@@ -362,8 +362,26 @@ class SkipGram:
         return cos
         # raise NotImplementedError("Not implemented yet")
 
-    def plot_loss(self):
+    def plot_current_loss(self):
         plt.plot(self.loss)
+        plt.ylabel("loss")
+        plt.xlabel("every 1000 words")
+        plt.grid()
+        plt.show()
+
+    def plot_loss(self):
+        list_learning_rate = []
+
+        with open("losses.json", "r") as json_file:
+            losses = json.load(json_file)
+            for d in losses:
+                loss_list = d["loss"]
+                x_axis = d.get("x") or list(i for i in range(len(loss_list)))
+                lr = d["lr"]
+                plt.plot(x_axis, loss_list)
+                list_learning_rate.append(f"lr = {lr}")
+
+        plt.legend(list_learning_rate)
         plt.ylabel("loss")
         plt.xlabel("every 1000 words")
         plt.grid()
@@ -435,6 +453,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--test", help="enters test mode", action="store_true")
     parser.add_argument("--v", help="enters verbose mode", action="store_true")
+    parser.add_argument("--plotall", help="enters plot mode", action="store_true")
     parser.add_argument("--plot", help="enters plot mode", action="store_true")
 
     opts = parser.parse_args()
@@ -468,6 +487,8 @@ if __name__ == "__main__":
         sg = SkipGram.load(opts.model or "params/", verbose=opts.v)
 
         if opts.plot:
+            sg.plot_current_loss()
+        if opts.plotall:
             sg.plot_loss()
 
         pairs = loadPairs(opts.text)

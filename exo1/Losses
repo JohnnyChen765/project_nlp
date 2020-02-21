@@ -1,0 +1,173 @@
+ lr = 0.01
+ > training 0 of 244854
+ > loss: 89.18277003362155
+ > training 1000 of 244854
+ > loss: 30.76563382471024
+ > training 2000 of 244854
+ > loss: 18.33271536281848
+ > training 3000 of 244854
+ > loss: 14.451249797753887
+ > training 4000 of 244854
+ > loss: 12.336099733784426
+ > training 5000 of 244854
+ > loss: 11.049750495070002
+ > training 6000 of 244854
+ > loss: 10.328621940944783
+ > training 7000 of 244854
+ > loss: 9.7189337528673
+ > training 8000 of 244854
+ > loss: 9.100795765669679
+ > training 9000 of 244854
+ > loss: 8.779569541020763
+ > training 10000 of 244854
+ > loss: 8.339952659776044
+ > training 11000 of 244854
+ > loss: 7.9552266397962
+ > training 12000 of 244854
+ > loss: 7.386892295205849
+ > training 13000 of 244854
+ > loss: 7.505799473686358
+ > training 14000 of 244854
+ > loss: 6.850784020784897
+ > training 15000 of 244854
+ > loss: 7.025049566602002
+ > training 16000 of 244854
+ > loss: 6.74472784915948
+ > training 17000 of 244854
+ > loss: 6.378431182885417
+ > training 18000 of 244854
+ > loss: 6.358715599281029
+ > training 19000 of 244854
+ > loss: 6.156531068200532
+ > training 20000 of 244854
+ > loss: 6.178941535374761
+ > training 21000 of 244854
+ > loss: 6.0099012269661465
+ > training 22000 of 244854
+ > loss: 5.960028370496125
+ > training 23000 of 244854
+ > loss: 5.9112958417041845
+ > training 24000 of 244854
+ > loss: 5.693549075441181
+ > training 25000 of 244854
+ > loss: 5.549720861457121
+ > training 26000 of 244854
+ > loss: 5.504472343529297
+ > training 27000 of 244854
+ > loss: 5.41225148906955
+ > training 28000 of 244854
+ > loss: 5.426869428150894
+ > training 29000 of 244854
+ > loss: 5.369563274291336
+
+lr = 0.05
+> training 0 of 244854
+ > loss: 23.489733731707
+ > took: 0.03 s
+ > training 1000 of 244854
+ > loss: 9.577280085346949
+ > took: 12.64 s
+ > training 2000 of 244854
+ > loss: 6.1918788789702015
+ > took: 12.89 s
+ > training 3000 of 244854
+ > loss: 5.284057187713012
+ > took: 13.18 s
+ > training 4000 of 244854
+ > loss: 4.6833197720263255
+ > took: 13.2 s
+ > training 5000 of 244854
+ > loss: 4.272449798239212
+ > took: 12.93 s
+ > training 6000 of 244854
+ > loss: 4.110897987183656
+ > took: 13.27 s
+ > training 7000 of 244854
+ > loss: 3.934263503766511
+ > took: 13.39 s
+ > training 8000 of 244854
+ > loss: 3.7184955461298235
+ > took: 13.58 s
+ > training 9000 of 244854
+ > loss: 3.637690034741869
+ > took: 13.48 s
+ > training 10000 of 244854
+ > loss: 3.5307773845929127
+ > took: 13.3 s
+ > training 11000 of 244854
+ > loss: 3.452954467872574
+ > took: 13.82 s
+ > training 12000 of 244854
+ > loss: 3.286971942853324
+ > took: 13.69 s
+ > training 13000 of 244854
+ > loss: 3.339377320569449
+ > took: 13.91 s
+ > training 14000 of 244854
+ > loss: 3.0775162724624283
+ > took: 13.89 s
+ > training 15000 of 244854
+ > loss: 3.1361077209950325
+ > took: 13.62 s
+ > training 16000 of 244854
+ > loss: 3.060585985255064
+ > took: 13.54 s
+ > training 17000 of 244854
+ > loss: 2.9909902918666513
+ > took: 13.57 s
+ > training 18000 of 244854
+ > loss: 2.94344163793341
+ > took: 13.91 s
+ > training 19000 of 244854
+ > loss: 2.9251637612724264
+ > took: 14.06 s
+ > training 20000 of 244854
+ > loss: 2.920366031462623
+ > took: 13.81 s
+ > training 21000 of 244854
+ > loss: 2.834681486291378
+ > took: 13.9 s
+ > training 22000 of 244854
+ > loss: 2.85533965856823
+ > took: 13.88 s
+ > training 23000 of 244854
+ > loss: 2.8735152289281594
+ > took: 13.46 s
+ > training 24000 of 244854
+ > loss: 2.7642136523404477
+ > took: 13.73 s
+ > training 25000 of 244854
+ > loss: 2.684002816783397
+ > took: 13.99 s
+ > training 26000 of 244854
+ > loss: 2.6977539921397167
+ > took: 14.4 s
+ > training 27000 of 244854
+ > loss: 2.677687750525277
+ > took: 13.99 s
+ > training 28000 of 244854
+ > loss: 2.674327227592155
+ > took: 14.08 s
+ > training 29000 of 244854
+ > loss: 2.6824775568734496
+ > took: 14.2 s
+
+
+lr = 0.3
+ > training 0 of 244854
+ > loss: 2.955179378311152
+ > took: 0.03 s
+ > training 1000 of 244854
+ > loss: 0.3937440255049768
+ > took: 12.64 s
+skipGram.py:135: RuntimeWarning: divide by zero encountered in log
+  loss = -np.log(p1 * p2)
+ > training 2000 of 244854
+ > loss: inf
+ > took: 13.09 s
+ > training 3000 of 244854
+ > loss: inf
+ > took: 13.69 s
+ > training 4000 of 244854
+ > loss: inf
+ > took: 13.4 s
