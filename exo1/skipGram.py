@@ -12,6 +12,7 @@ from sklearn.preprocessing import normalize
 import json
 import time
 import os
+import matplotlib.pyplot as plt
 
 __authors__ = ["Johnny Chen", "Guillaume Biagi"]
 __emails__ = []
@@ -361,6 +362,13 @@ class SkipGram:
         return cos
         # raise NotImplementedError("Not implemented yet")
 
+    def plot_loss(self):
+        plt.plot(self.loss)
+        plt.ylabel("loss")
+        plt.xlabel("every 1000 words")
+        plt.grid()
+        plt.show()
+
     @staticmethod
     def load(path, verbose=False):
         start = time.time()
@@ -427,6 +435,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--test", help="enters test mode", action="store_true")
     parser.add_argument("--v", help="enters verbose mode", action="store_true")
+    parser.add_argument("--plot", help="enters plot mode", action="store_true")
 
     opts = parser.parse_args()
 
@@ -456,8 +465,12 @@ if __name__ == "__main__":
         sg.save(opts.model or "params/")
 
     else:
-        pairs = loadPairs(opts.text)
         sg = SkipGram.load(opts.model or "params/", verbose=opts.v)
+
+        if opts.plot:
+            sg.plot_loss()
+
+        pairs = loadPairs(opts.text)
 
         for a, b, _ in pairs:
             # make sure this does not raise any exception, even if a or b are not in sg.vocab
