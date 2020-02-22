@@ -15,7 +15,7 @@ import os
 import matplotlib.pyplot as plt
 
 __authors__ = ["Johnny Chen", "Guillaume Biagi"]
-__emails__ = []
+__emails__ = ["chenjohn765@gmail.com", "biagiguillaume@gmail.com"]
 
 
 def text2sentences(path):
