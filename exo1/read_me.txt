@@ -8,6 +8,11 @@ The parameters of our model are saved in json files except for the matrices whic
 For the similarity, we just take the scalar product between the two words normalized by their norms (similar to a cosine). If one of the words is not in the models vocabulary, we return 0.
 Our code also includes the test functions we used to test some functions.
 
+We have marked down all the losses we got from our experiments in 2 files:
+- Losses, which is just a text file, without really structured data
+- losses.json, which is the same, but structured, used for plotting.
+They are both manually edited files, so they won't be overwritten.
+
 Reference:
 https://towardsdatascience.com/an-implementation-guide-to-word2vec-using-numpy-and-google-sheets-13445eebd281
 https://aegis4048.github.io/optimize_computational_efficiency_of_skip-gram_with_negative_sampling
