@@ -295,7 +295,7 @@ class SkipGram:
                 self.trainWords = 0
                 self.accLoss = 0.0
 
-    def trainWord(self, wordId, contextId, negativeIds, lr=0.05):
+    def trainWord(self, wordId, contextId, negativeIds, lr=0.1):
         w = self.center_matrix[wordId, :]
         wc = self.context_matrix[contextId, :]
         array_zj = self.context_matrix[negativeIds, :]
